@@ -1,0 +1,16 @@
+<Project>
+  <!-- Settings shared by every C# project in the solution. -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- C# only: WiX reports WIX1105 (ICE validation needs admin rights) as a warning on non-elevated builds. -->
+    <TreatWarningsAsErrors Condition="'$(MSBuildProjectExtension)' == '.csproj'">true</TreatWarningsAsErrors>
+    <!-- The MSIX packaging project publishes the app (and so every library it references) for these
+         runtimes, so all projects must restore for them (otherwise NETSDK1047). -->
+    <RuntimeIdentifiers Condition="'$(MSBuildProjectExtension)' == '.csproj'">win-x64;win-arm64</RuntimeIdentifiers>
+    <Version>1.0.0</Version>
+    <Company>SWE40006</Company>
+    <Product>Unit Converter</Product>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,51 @@
+<?define AppDir = $(var.UnitConverter.App.TargetDir) ?>
+
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+    <!-- The executable and the files the .NET host needs to start it. One file per component. -->
+    <ComponentGroup Id="ApplicationComponents" Directory="INSTALLFOLDER">
+      <Component>
+        <File Id="AppExe" Source="$(var.AppDir)UnitConverter.exe" KeyPath="yes" />
+      </Component>
+      <Component>
+        <File Source="$(var.AppDir)UnitConverter.dll" />
+      </Component>
+      <Component>
+        <File Source="$(var.AppDir)UnitConverter.runtimeconfig.json" />
+      </Component>
+      <Component>
+        <File Source="$(var.AppDir)UnitConverter.deps.json" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- The class-library DLLs the application depends on. -->
+    <ComponentGroup Id="LibraryComponents" Directory="INSTALLFOLDER">
+      <Component>
+        <File Source="$(var.AppDir)UnitConverter.Core.dll" />
+      </Component>
+      <Component>
+        <File Source="$(var.AppDir)UnitConverter.Units.dll" />
+      </Component>
+      <Component>
+        <File Source="$(var.AppDir)UnitConverter.Persistence.dll" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Windows Installer treats the Start menu as a user-profile folder, so a shortcut there needs its own
+         component with an HKCU registry key path (ICE43/ICE57). Target is a folder path rather than
+         [#AppExe], because a file reference across components raises ICE69. -->
+    <Component Id="StartMenuShortcut" Directory="AppMenuFolder">
+      <Shortcut Name="!(bind.Property.ProductName)"
+                Description="Convert between common units of measurement"
+                Target="[INSTALLFOLDER]UnitConverter.exe"
+                WorkingDirectory="INSTALLFOLDER" />
+      <RemoveFolder Id="RemoveAppMenuFolder" On="uninstall" />
+      <RegistryValue Root="HKCU"
+                     Key="Software\!(bind.Property.Manufacturer)\!(bind.Property.ProductName)"
+                     Name="StartMenuShortcut"
+                     Type="integer"
+                     Value="1"
+                     KeyPath="yes" />
+    </Component>
+  </Fragment>
+</Wix>

@@ -1,0 +1,22 @@
+<Project Sdk="WixToolset.Sdk/7.0.0">
+
+  <PropertyGroup>
+    <!-- WiX v7 requires accepting the Open Source Maintenance Fee EULA (https://wixtoolset.org/osmf/). -->
+    <AcceptEula>wix7</AcceptEula>
+    <OutputName>UnitConverterSetup</OutputName>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <!-- Keep the MSI version in step with the application version from Directory.Build.props. -->
+    <DefineConstants>ProductVersion=$(Version)</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="7.0.0" />
+    <PackageReference Include="WixToolset.Netfx.wixext" Version="7.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Building the installer builds the app first and exposes $(var.UnitConverter.App.TargetDir). -->
+    <ProjectReference Include="..\..\src\UnitConverter.App\UnitConverter.App.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,807 @@
+% SWE40006 Deployment Activity 1 - Task 1 (WiX) report.
+% Compile on Overleaf (pdfLaTeX). Put screenshots in the figures/ folder using the file names
+% given in each \screenshot{...}; missing images are shown as labelled placeholders.
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=2.2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{textcomp}
+\PassOptionsToPackage{obeyspaces,spaces,hyphens}{url}
+\usepackage[hidelinks]{hyperref}
+
+% ---------------------------------------------------------------------------
+% Fill in these details before submitting.
+% ---------------------------------------------------------------------------
+\newcommand{\StudentName}{Your Full Name}
+\newcommand{\StudentId}{123456789}
+\newcommand{\Semester}{Semester 2, 2026}
+\newcommand{\DueDate}{DD Month 2026}
+\newcommand{\SubmissionDate}{DD Month 2026}
+\newcommand{\RepoUrl}{https://github.com/DuongD0/unit-converter-wix}
+
+% ---------------------------------------------------------------------------
+% Styling
+% ---------------------------------------------------------------------------
+\definecolor{consolebg}{RGB}{245,245,245}
+\lstdefinestyle{console}{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{consolebg},
+  frame=single, rulecolor=\color{black!25},
+  breaklines=true, breakatwhitespace=false,
+  columns=fullflexible, keepspaces=true,
+  xleftmargin=2pt, xrightmargin=2pt, aboveskip=6pt, belowskip=6pt
+}
+\lstset{style=console}
+\captionsetup{font=small, labelfont=bf}
+\setlist{itemsep=2pt, topsep=4pt}
+\setlength{\parskip}{4pt}
+
+% \screenshot{file name}{caption}{what to capture}
+\newcommand{\screenshot}[3]{%
+  \begin{figure}[H]
+    \centering
+    \IfFileExists{figures/#1}{%
+      \includegraphics[width=0.9\linewidth,height=0.42\textheight,keepaspectratio]{figures/#1}%
+    }{%
+      \fbox{\parbox[c][3.2cm][c]{0.85\linewidth}{\centering\small\textit{Screenshot placeholder: }%
+        \texttt{figures/\detokenize{#1}}\\[4pt]#3}}%
+    }
+    \caption{#2}
+  \end{figure}}
+
+% Paths and identifiers: typewriter font, allowed to break after . \ / _ and similar.
+\newcommand{\file}{\path}
+\makeatletter\g@addto@macro{\UrlBreaks}{\do\.\do\_\do\\\do\-\do\=\do\>}\makeatother
+
+\begin{document}
+
+% ---------------------------------------------------------------------------
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+  {\Large SWE40006 Software Deployment and Evolution\par}
+  \vspace{0.6cm}
+  {\LARGE\bfseries Deployment Activity 1\par}
+  \vspace{0.3cm}
+  {\Large Task 1: Desktop Deployment Using the\\Windows Installer XML (WiX) Toolset\par}
+  \vspace{1.5cm}
+
+  \begin{tabular}{>{\bfseries}l l}
+    \toprule
+    Student name     & \StudentName \\
+    Student ID       & \StudentId \\
+    Unit             & SWE40006 Software Deployment and Evolution \\
+    Semester         & \Semester \\
+    Due date         & \DueDate \\
+    Submission date  & \SubmissionDate \\
+    Level attempted  & High Distinction (Sub-tasks 1.2, 1.3 and 1.4) \\
+    Source code      & \url{\RepoUrl} \\
+    \bottomrule
+  \end{tabular}
+
+  \vfill
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ===========================================================================
+\section{Declaration of task level attempted}
+
+I attempted the High Distinction level. Table~\ref{tab:levels} lists each sub-task and where the
+evidence for it is in this report.
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\linewidth}{l >{\raggedright\arraybackslash}p{3.6cm} X}
+\toprule
+\textbf{Sub-task} & \textbf{Status} & \textbf{Evidence} \\
+\midrule
+1.1 Pass        & Covered by 1.2 & Sub-task 1.3 needs 1.1 \emph{or} 1.2. I followed the walkthrough steps with my own application instead of the sample. \\
+1.2 Credit      & Completed & My own C\# Windows Forms application, packaged with WiX v7, then installed, run and uninstalled (Section~\ref{sec:own-app}). \\
+1.3 Distinction & Completed & The application is an executable plus three class-library DLLs, all deployed by the installer and checked after installation (Section~\ref{sec:dlls}). \\
+1.4 High Distinction & Store package built; submission explained in detail & A Windows Application Packaging Project produces an \file{.msixupload} that contains every DLL and the .NET runtime. Section~\ref{sec:store} gives the Partner Center steps and the listing content. \\
+\bottomrule
+\end{tabularx}
+\caption{Sub-tasks attempted}
+\label{tab:levels}
+\end{table}
+
+The source code, WiX files, packaging project and build script are in the public repository
+\url{\RepoUrl}. As the submission instructions ask, I have not copied source code into this
+report. Files are referred to by their path in the repository instead.
+
+% ===========================================================================
+\section{Environment and tool installation}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{5.2cm} X}
+\toprule
+\textbf{Component} & \textbf{Version} \\
+\midrule
+Operating system & Windows 11 (x64) \\
+.NET SDK & 10.0.401 (includes the .NET 10 Desktop Runtime) \\
+WiX Toolset (\file{wix} global tool and \file{WixToolset.Sdk}) & 7.0.0 \\
+WiX extensions & \file{WixToolset.UI.wixext} 7.0.0, \file{WixToolset.Netfx.wixext} 7.0.0 \\
+IDE & Visual Studio Community 2026 with the FireGiant HeatWave extension \\
+MSIX packaging & Visual Studio Desktop Bridge targets; \file{Microsoft.Windows.SDK.BuildTools} 10.0.28000.2705 \\
+\bottomrule
+\end{tabularx}
+\caption{Tools used}
+\end{table}
+
+I installed WiX as a .NET global tool, as the walkthrough describes, after checking that the
+\file{nuget.org} package source was registered:
+
+\begin{lstlisting}
+PS> dotnet nuget list source
+PS> dotnet tool install --global wix
+PS> dotnet --version
+10.0.401
+PS> wix --version
+7.0.0+b8977d6
+\end{lstlisting}
+
+\screenshot{01-tool-versions.png}{.NET SDK and WiX Toolset versions confirmed in PowerShell}
+{PowerShell window showing \texttt{dotnet --version} and \texttt{wix --version}.}
+
+\screenshot{02-heatwave.png}{The FireGiant HeatWave extension loading the WiX installer project in Visual Studio (all 7 of 7 projects loaded)}
+{Visual Studio: Extensions $\rightarrow$ Manage Extensions, showing HeatWave as installed.}
+
+% ===========================================================================
+\section{Sub-task 1.2: deploying my own C\# desktop application}
+\label{sec:own-app}
+
+\subsection{The application}
+
+Unit Converter is a Windows Forms application that converts values between units of length,
+mass, temperature, volume and speed. It remembers the last 50 conversions in the file
+\begin{center}\texttt{\%LOCALAPPDATA\%\textbackslash UnitConverter\textbackslash history.json}\end{center}
+so the history is still there after the program is closed and reopened.
+
+\screenshot{03-app-running.png}{Unit Converter running from its installed location after four conversions ($100\,^\circ$C $= 212\,^\circ$F shown, with the history list)\label{fig:app}}
+{The application window with a conversion performed (e.g.\ 100 \textdegree C = 212 \textdegree F) and entries in the history list.}
+
+\subsection{Design for maintainability}
+
+The user interface and the conversion logic depend on interfaces instead of concrete classes,
+which is the dependency-inversion principle. In practice this shows up in a few places.
+
+Every unit converts to and from its category's base unit with one formula,
+$\textit{base} = \textit{value} \times \textit{factor} + \textit{offset}$, implemented in
+\file{AffineUnit}. A zero offset handles scaled units such as metres and grams, and a non-zero
+offset handles Celsius and Fahrenheit. Because everything goes through the base unit, $N$ units
+need $N$ definitions instead of $N^2$ conversion pairs. Units are declared in
+\file{StandardUnitCatalog.cs} with a fluent \file{CategoryBuilder}, one line per unit. The
+drop-down lists are built from this catalogue, so adding a unit or a whole category does not
+touch the user interface.
+
+History is only reached through \file{IConversionHistory}. Replacing the JSON file with a
+database would mean writing one new class and changing one line in \file{Program.cs}, which is
+the only place where concrete classes are chosen. \file{ConversionService} receives its history
+store and a \file{TimeProvider} through its constructor, so the tests can pass in in-memory
+versions.
+
+The history file is written to a temporary file first and then moved over the old one, so a crash
+during a save cannot leave a half-written file. If the file is corrupt anyway, the app starts
+with an empty history. Input that is not a number, is infinite, or mixes units from different
+categories is rejected with a message.
+
+Settings shared by all projects (version number, nullable reference types, warnings as errors)
+live once in \file{Directory.Build.props}, and the MSI and MSIX versions are taken from the same
+value. The application icon and every Store logo size are drawn by one script,
+\file{tools/Generate-Assets.ps1}.
+
+\subsection{Automated tests}
+
+There are 18 xUnit tests in \file{tests/UnitConverter.Tests}. They check known conversions such
+as $100\,^\circ\mathrm{C} = 212\,^\circ\mathrm{F}$ and $1\,\mathrm{mi} = 1.609344\,\mathrm{km}$,
+that every unit survives a round trip through its base unit, that bad input is rejected, that
+history keeps the newest entries first and respects its size limit, that history survives a
+restart, and that a corrupt history file is handled.
+
+\begin{lstlisting}
+==> Run unit tests
+Passed!  - Failed: 0, Passed: 18, Skipped: 0, Total: 18, Duration: 378 ms - UnitConverter.Tests.dll (net10.0)
+\end{lstlisting}
+
+\subsection{Creating the WiX installer project}
+
+Following the walkthrough, I added a WiX MSI Package project
+(\file{installer/UnitConverter.Installer}) to the solution with a project reference to the
+application. Building the installer therefore builds the application first, and WiX gets the
+preprocessor variable \file{$(var.UnitConverter.App.TargetDir)}, so no file path is hard-coded.
+Table~\ref{tab:wix-files} describes each installer file.
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{4.3cm} X}
+\toprule
+\textbf{File} & \textbf{Purpose} \\
+\midrule
+\file{UnitConverter.Installer.wixproj} &
+  Uses \file{WixToolset.Sdk/7.0.0}. Sets \file{AcceptEula} to \file{wix7}, which WiX v7 requires,
+  names the output \file{UnitConverterSetup}, targets x64, and passes the application version to
+  WiX as \file{ProductVersion} so the MSI version always matches the application. \\
+\file{Package.wxs} &
+  Defines the product: name, manufacturer, version and a fixed \file{UpgradeCode}.
+  \file{MajorUpgrade} replaces older versions and blocks downgrades.
+  \file{MediaTemplate EmbedCab="yes"} keeps everything in one \file{.msi} file.
+  \file{DotNetCompatibilityCheck} and a \file{Launch} condition stop the installation, with a
+  download link, if the .NET 10 Desktop Runtime is missing.
+  \file{ARPPRODUCTICON} puts the application icon in \emph{Installed apps}.
+  \file{WixUI_InstallDir} adds the welcome, licence, install-folder and progress pages. \\
+\file{Folders.wxs} &
+  Declares \file{C:\Program Files\Unit Converter} and a Start-menu folder. Both names come from
+  the product name, so renaming the product means changing one attribute. \\
+\file{AppComponents.wxs} &
+  One component per file: the executable and its runtime files (\file{ApplicationComponents}),
+  the three library DLLs (\file{LibraryComponents}), and the Start-menu shortcut. The shortcut
+  component uses an \file{HKCU} registry value as its key path and removes its folder on
+  uninstall; Section~\ref{sec:ice} explains why. \\
+\file{License.rtf} & The MIT licence shown on the licence page. \\
+\file{build.ps1} (repository root) &
+  Runs the tests and builds the MSI. With \file{-Store} it also builds the MSIX package. It
+  stops at the first step that fails. \\
+\bottomrule
+\end{tabularx}
+\caption{WiX installer source files}
+\label{tab:wix-files}
+\end{table}
+
+\screenshot{04-solution-explorer.png}{Visual Studio 2026 with the WiX component authoring (\texttt{AppComponents.wxs}) open and the application, library and packaging projects in Solution Explorer}
+{Visual Studio Solution Explorer with all seven projects expanded.}
+
+\subsection{Building the MSI}
+
+The installer builds from Visual Studio (right-click the installer project and choose
+\emph{Build}) or from the command line with \file{.\build.ps1}:
+
+\begin{lstlisting}
+==> Build installer
+  UnitConverter.Core -> ...\src\UnitConverter.Core\bin\Release\net10.0\UnitConverter.Core.dll
+  UnitConverter.Units -> ...\src\UnitConverter.Units\bin\Release\net10.0\UnitConverter.Units.dll
+  UnitConverter.Persistence -> ...\bin\Release\net10.0\UnitConverter.Persistence.dll
+  UnitConverter.App -> ...\src\UnitConverter.App\bin\Release\net10.0-windows\UnitConverter.dll
+  UnitConverter.Installer -> ...\installer\UnitConverter.Installer\bin\Release\UnitConverterSetup.msi
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+Installer ready: ...\bin\Release\UnitConverterSetup.msi (872 KB)
+\end{lstlisting}
+
+The final build has no warnings and passes all Windows Installer ICE validation checks.
+Section~\ref{sec:errors} covers the errors I hit before getting there.
+
+\screenshot{05-build-output.png}{Tests and installer built with \texttt{build.ps1}: 18 tests passed, 0 warnings, 0 errors}
+{The Visual Studio Output window (or PowerShell running build.ps1) ending in ``Build succeeded''.}
+
+\subsection{Installing, running and uninstalling}
+
+Figures~\ref{fig:welcome} to~\ref{fig:complete} show the installer wizard from start to finish.
+
+\screenshot{06-installer-welcome.png}{Installer welcome page\label{fig:welcome}}
+{First page of the setup wizard after double-clicking UnitConverterSetup.msi.}
+
+\screenshot{07-installer-license.png}{Licence agreement page, with the licence accepted}
+{The MIT licence page with ``I accept'' ticked.}
+
+\screenshot{08-installer-folder.png}{Choosing the installation folder}
+{The destination folder page showing C:\textbackslash Program Files\textbackslash Unit Converter\textbackslash.}
+
+\screenshot{09-installer-complete.png}{Installation completed\label{fig:complete}}
+{The final ``Completed the Unit Converter Setup Wizard'' page.}
+
+\screenshot{10-start-menu.png}{Start-menu shortcut created by the installer (Start Menu \textgreater{} Programs \textgreater{} Unit Converter)}
+{Windows Start menu search for ``Unit Converter'', showing the blue arrows icon.}
+
+\screenshot{11-installed-apps.png}{Unit Converter 1.0.0 by SWE40006 Student, with its icon, in Settings \textgreater{} Apps \textgreater{} Installed apps}
+{Settings $\rightarrow$ Apps $\rightarrow$ Installed apps showing Unit Converter 1.0.0 by SWE40006 Student.}
+
+I also ran a silent install with a verbose log and checked each thing the installer is supposed
+to do:
+
+\begin{lstlisting}
+PS> msiexec /i UnitConverterSetup.msi /qn /l*v uc-install.log      # exit code 0
+PS> Select-String uc-install.log -Pattern 'DOTNETDESKTOP10|Installation completed'
+Property(S): DOTNETDESKTOP10 = 0
+Product: Unit Converter -- Installation completed successfully.
+
+PS> Get-ChildItem 'C:\Program Files\Unit Converter'
+UnitConverter.Core.dll            10752
+UnitConverter.deps.json            1782
+UnitConverter.dll                 21504
+UnitConverter.exe                172032
+UnitConverter.Persistence.dll      6144
+UnitConverter.runtimeconfig.json    519
+UnitConverter.Units.dll           11264
+
+Start menu:     Unit Converter.lnk
+Installed apps: Unit Converter 1.0.0, Publisher: SWE40006 Student
+Launched from Program Files: running, window title "Unit Converter"
+\end{lstlisting}
+
+\file{DOTNETDESKTOP10 = 0} is the result of the .NET runtime check. Zero means a compatible
+runtime was found, so the launch condition let the installation continue.
+
+Uninstalling from \emph{Installed apps}, or with \file{msiexec /x}, removes everything the
+installer created:
+
+\begin{lstlisting}
+PS> msiexec /x UnitConverterSetup.msi /qn /l*v uc-uninstall.log    # exit code 0
+program folder exists:   False
+shortcut folder exists:  False
+in installed apps:       False
+\end{lstlisting}
+
+The history file in \texttt{\%LOCALAPPDATA\%} stays behind on purpose. It is the user's data and
+was created by the application, not by the installer.
+
+\screenshot{12-uninstalled.png}{Uninstallation verified: program folder, shortcut and package registration all removed}
+{File Explorer showing C:\textbackslash Program Files without a Unit Converter folder.}
+
+% ===========================================================================
+\section{Sub-task 1.3: deploying an application with multiple DLLs}
+\label{sec:dlls}
+
+The application is built from four projects. Three of them compile to class-library DLLs. They
+have no \file{Main} method, cannot run by themselves, and are loaded by the executable at run
+time.
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\linewidth}{l >{\raggedright\arraybackslash}p{4.4cm} X}
+\toprule
+\textbf{Project} & \textbf{Output} & \textbf{Responsibility and dependencies} \\
+\midrule
+UnitConverter.Core        & \file{UnitConverter.Core.dll}        & Interfaces (\file{IUnit}, \file{IUnitCatalog}, \file{IConversionHistory}) and \file{ConversionService}. Depends on nothing. \\
+UnitConverter.Units       & \file{UnitConverter.Units.dll}       & \file{AffineUnit}, \file{CategoryBuilder} and the built-in catalogue. Depends on Core. \\
+UnitConverter.Persistence & \file{UnitConverter.Persistence.dll} & JSON-file history store. Depends on Core. \\
+UnitConverter.App         & \file{UnitConverter.exe} + \file{UnitConverter.dll} & WinForms user interface and composition root. Depends on all three libraries. \\
+\bottomrule
+\end{tabularx}
+\caption{Projects and the binaries they produce}
+\end{table}
+
+Core depends on nothing, and each of the other libraries depends only on Core. A bug in the
+history store could therefore be fixed by shipping a new \file{UnitConverter.Persistence.dll} on
+its own, which is the patching advantage of DLLs mentioned in the task notes.
+
+\paragraph{How the installer deploys the DLLs.}
+\file{AppComponents.wxs} lists every file explicitly, one file per component, as Windows
+Installer guidance recommends. Each file gets its own component GUID and key path, so Windows
+Installer can repair or upgrade each DLL separately. The DLLs sit in their own
+\file{LibraryComponents} group, which makes the dependencies easy to see in the installer source.
+The \file{.runtimeconfig.json} and \file{.deps.json} files are installed too. Without them the
+.NET host cannot find the DLLs and the application does not start.
+
+\paragraph{Checking the package contents.}
+I decompiled the MSI with \file{wix msi decompile} to make sure every binary was inside it. The
+\file{File} table lists all seven files:
+
+\begin{lstlisting}
+PS> wix msi decompile UnitConverterSetup.msi -o decompiled.wxs -acceptEula wix7
+<File Id="AppExe" ... Name="UnitConverter.exe" KeyPath="yes" ... />
+<File ... Name="UnitConverter.deps.json" KeyPath="yes" ... />
+<File ... Name="UnitConverter.Persistence.dll" KeyPath="yes" ... />
+<File ... Name="UnitConverter.Units.dll" KeyPath="yes" ... />
+<File ... Name="UnitConverter.dll" KeyPath="yes" ... />
+<File ... Name="UnitConverter.Core.dll" KeyPath="yes" ... />
+<File ... Name="UnitConverter.runtimeconfig.json" KeyPath="yes" ... />
+\end{lstlisting}
+
+The silent install in the previous section put the same seven files in
+\file{C:\Program Files\Unit Converter}, and the application loaded its DLLs and ran from there.
+
+\screenshot{13-installed-files.png}{Installed files in C:\textbackslash Program Files\textbackslash Unit Converter, including the three library DLLs}
+{File Explorer at C:\textbackslash Program Files\textbackslash Unit Converter showing the .exe, the four .dll files and the two .json files.}
+
+% ===========================================================================
+\section{Sub-task 1.4: deploying to the Microsoft Store}
+\label{sec:store}
+
+The Microsoft Store takes desktop applications in two forms. I built the package for the first
+one, which is the route the unit walkthrough uses, and describe both below. The repository has a
+longer version of this guide in \file{docs/MicrosoftStore.md}.
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\linewidth}{l X X}
+\toprule
+ & \textbf{Route A: MSIX package (built)} & \textbf{Route B: submit the WiX MSI} \\
+\midrule
+What is uploaded & \file{.msixupload} from a Windows Application Packaging Project & An HTTPS URL of \file{UnitConverterSetup.msi} \\
+Install and update & Managed by the Store, with clean uninstall and automatic updates & The MSI runs silently; updates come through \file{MajorUpgrade} \\
+Code signing & Done by Microsoft & I would have to sign it with a trusted Authenticode certificate \\
+Project changes & Packaging project; self-contained app & None; sign and host the MSI \\
+\bottomrule
+\end{tabularx}
+\caption{The two ways to publish a desktop application in the Microsoft Store}
+\end{table}
+
+\subsection{Current status}
+
+Everything that can be done without a Store developer account is done. The upload package builds
+and has been checked, the listing text and privacy policy are written, and the steps below are
+worked out for this application. What is left is registering the account, reserving the name and
+uploading. Microsoft verifies each developer's identity, so this part has to be done by the
+account owner.
+
+\subsection{Building the Store package}
+
+As in section 6 of the walkthrough, I added a Windows Application Packaging Project
+(\file{packaging/UnitConverter.Package}) to the solution and gave it a reference to the
+application project. Table~\ref{tab:msix-files} describes its files.
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{4.3cm} X}
+\toprule
+\textbf{File} & \textbf{Purpose} \\
+\midrule
+\file{UnitConverter.Package.wapproj} &
+  Builds x64 and ARM64 packages and bundles them (\file{AppxBundle=Always}).
+  \file{UapAppxPackageBuildMode=StoreUpload} produces the \file{.msixupload} that Partner Center
+  accepts. Signing is switched off because the Store signs packages during certification.
+  \file{Microsoft.Windows.SDK.BuildTools} provides \file{makeappx}, so the full Windows SDK is not
+  needed. \\
+\file{Package.appxmanifest} &
+  Package identity and version, display name, Store logos, a minimum of Windows 10 version 1809,
+  and the \file{runFullTrust} capability that any packaged Win32 application needs. \\
+\file{Images/*.png} &
+  Store logo, 44\texttimes44 and 150\texttimes150 tiles, wide tile and splash screen, all
+  generated by \file{tools/Generate-Assets.ps1}. \\
+\file{UnitConverter.App.csproj} &
+  A conditional \file{SelfContained} property. When the packaging project builds the app for a
+  specific runtime, the .NET runtime is bundled with it, because an MSIX package cannot install
+  prerequisites. The MSI build is not affected and stays framework-dependent. \\
+\bottomrule
+\end{tabularx}
+\caption{Microsoft Store packaging files}
+\label{tab:msix-files}
+\end{table}
+
+The package builds from Visual Studio with \emph{Publish} $\rightarrow$ \emph{Create App
+Packages}, or from the command line:
+
+\begin{lstlisting}
+PS> .\build.ps1 -Store
+==> Run unit tests
+Passed!  - Failed: 0, Passed: 18, Skipped: 0, Total: 18
+==> Build installer
+Installer ready: ...\UnitConverterSetup.msi (872 KB)
+==> Build Microsoft Store package
+  UnitConverter.Package -> ...\bin\x64\Release\UnitConverter.Package_1.0.0.0_x64.msix (unsigned)
+  UnitConverter.Package -> ...\bin\arm64\Release\UnitConverter.Package_1.0.0.0_arm64.msix (unsigned)
+  UnitConverter.Package -> ...\AppPackages\UnitConverter.Package_1.0.0.0_x64_arm64_bundle.msixupload
+  Your package has been successfully created.
+Store upload ready: ...\UnitConverter.Package_1.0.0.0_x64_arm64_bundle.msixupload (95 MB)
+\end{lstlisting}
+
+\paragraph{Checking the package contents.} An \file{.msixupload} is a ZIP archive holding an
+\file{.msixbundle}, which in turn holds one \file{.msix} per architecture. I opened the x64
+package and found all of the application's DLLs, the bundled .NET runtime (\file{coreclr.dll}
+and \file{System.Windows.Forms.dll}, among others) and the logos. Visual Studio had also filled
+in the entry point in the manifest:
+
+\begin{lstlisting}
+upload: UnitConverter.Package_1.0.0.0_x64_arm64.msixbundle, *_x64.appxsym, *_arm64.appxsym
+bundle: UnitConverter.Package_1.0.0.0_x64.msix, UnitConverter.Package_1.0.0.0_arm64.msix
+x64 package: 282 files, 123.2 MB uncompressed
+  UnitConverter.App/UnitConverter.exe            UnitConverter.App/UnitConverter.dll
+  UnitConverter.App/UnitConverter.Core.dll       UnitConverter.App/UnitConverter.Units.dll
+  UnitConverter.App/UnitConverter.Persistence.dll
+  UnitConverter.App/coreclr.dll                  UnitConverter.App/System.Windows.Forms.dll
+  Images/StoreLogo.png  Images/Square44x44Logo.png  Images/Square150x150Logo.png ...
+<Application Id="App" Executable="UnitConverter.App\UnitConverter.exe"
+             EntryPoint="Windows.FullTrustApplication">
+\end{lstlisting}
+
+\screenshot{14-create-app-packages.png}{Building the Microsoft Store package with \texttt{build.ps1 -Store}: x64 and ARM64 MSIX packages bundled into an \texttt{.msixupload}}
+{The Create App Packages wizard (Microsoft Store, x64 and ARM64, Release), or its final ``Finished creating package'' page.}
+
+\screenshot{15-msixupload.png}{The generated Store upload package}
+{File Explorer in packaging\textbackslash UnitConverter.Package\textbackslash AppPackages showing the .msixupload file.}
+
+\subsection{Submitting the package in Partner Center}
+
+\begin{enumerate}
+  \item Register as an individual developer on the Microsoft Store developer site and complete
+        identity verification, which asks for an ID document and a selfie.
+  \item Reserve the app name. In Partner Center, choose \emph{Apps and games} $\rightarrow$
+        \emph{New product} $\rightarrow$ \emph{MSIX or PWA app}. A generic name such as ``Unit
+        Converter'' is probably taken, so something like ``Unit Converter SWE40006'' is needed.
+        The reservation lasts three months.
+  \item Link the package to the reservation. In Visual Studio, right-click the packaging project
+        and choose \emph{Publish} $\rightarrow$ \emph{Associate App with the Store}. This swaps
+        the placeholder identity in \file{Package.appxmanifest} (\file{SWE40006.UnitConverter},
+        \file{CN=SWE40006 Student}) for the name and publisher shown under \emph{Product
+        identity}. Partner Center rejects an upload whose identity does not match.
+  \item Rebuild with \file{.\build.ps1 -Store} or \emph{Create App Packages}, and run the Windows
+        App Certification Kit on the result. It runs the same basic checks as Store
+        certification, so problems show up before the submission rather than during review.
+  \item Fill in the submission. Pricing and availability: free, in all markets, public and
+        discoverable, so anyone can find and download it. Properties: category \emph{Utilities
+        \& tools} and the privacy-policy URL (Section~\ref{sec:listing}). Age ratings: the IARC
+        questionnaire, which for an app with no violence, user interaction or data sharing should
+        give \emph{3+ / Everyone}. Packages: upload the \file{.msixupload}. Partner Center checks
+        its identity, version and capabilities straight away, and asks for a one-line reason for
+        the \file{runFullTrust} capability (``Windows Forms desktop application''). Store listing:
+        the text in Section~\ref{sec:listing} plus screenshots of the installed app, such as
+        Figure~\ref{fig:app}. Submission options: publish as soon as
+        certification passes, with a note for testers that no account or test data is needed.
+  \item Wait for certification. Microsoft runs a security scan, technical checks and a content
+        review, which normally takes up to three business days. The app is then public at
+        \file{https://apps.microsoft.com/detail/<StoreID>}, where the Store ID appears under
+        \emph{Product identity}.
+  \item For later updates, raise the version in \file{Directory.Build.props} and the manifest,
+        rebuild, and create a new submission. The Store updates existing users automatically.
+\end{enumerate}
+
+\subsection{Store listing content}
+\label{sec:listing}
+
+This is the listing text I prepared for the submission.
+
+\begin{description}[leftmargin=3.2cm, style=nextline]
+  \item[Product name] Unit Converter SWE40006 (or whichever name is free when reserved)
+  \item[Short description] Convert length, mass, temperature, volume and speed in one small
+        window, with a history of your recent conversions.
+  \item[Description] Unit Converter is a small, fast desktop tool for everyday unit conversions.
+        Pick a category, type a value, choose the units and press Convert. It handles metric and
+        imperial lengths, weights, temperatures in Celsius, Fahrenheit and Kelvin, volumes
+        including US cups and gallons, and speeds in km/h, mph, m/s and knots. Your last 50
+        conversions are kept on your computer so you can look back at them later. The app works
+        offline and does not collect any data.
+  \item[Features] Five categories and 25 units; temperature conversion with offsets handled
+        correctly; one-click swap of the from and to units; conversion history that survives
+        restarts; works fully offline.
+  \item[Keywords] unit converter, metric, imperial, temperature, length, weight
+  \item[Category] Utilities \& tools
+  \item[Privacy policy] \url{https://github.com/DuongD0/unit-converter-wix/blob/main/docs/PRIVACY.md}. It states that the app stores
+        its history only on the device, makes no network connections and collects no personal
+        information.
+  \item[Notes for testers] No account or test data is needed. Choose a category, enter a value
+        and press Convert.
+\end{description}
+
+\subsection{Route B: submitting the existing MSI}
+
+Partner Center also accepts traditional installers as \emph{EXE or MSI apps}. For this route the
+MSI has to be signed with an Authenticode certificate from a CA in the Microsoft Trusted Root
+Program, or with Azure Trusted Signing, using
+\file{signtool sign /fd SHA256 /tr <timestamp-url> /td SHA256}. It also has to be hosted at an
+HTTPS URL that never changes, one per version, such as a GitHub Release asset. The Store installs
+it silently during certification, and the listing has to mention that the .NET 10 Desktop
+Runtime is required. Updates then come through the installer's \file{MajorUpgrade} rule, with a
+new URL for each version. I did not take this route because it needs a paid code-signing
+certificate, while Route A does not.
+
+\subsection{Common rejection reasons}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\linewidth}{X X}
+\toprule
+\textbf{Rejection reason} & \textbf{How this project avoids it} \\
+\midrule
+Manifest identity does not match the reservation & \emph{Associate App with the Store} sets the identity, so it is never typed by hand \\
+The app crashes on a clean PC because .NET is missing & The MSIX is self-contained (\file{coreclr.dll} is in the package); the MSI has a runtime launch condition \\
+Unsigned installer, or the file at the URL changed (Route B) & Trusted signing certificate and one fixed URL per version \\
+Missing or wrong-sized logos & All sizes come from one script and are referenced by the manifest \\
+Missing privacy policy & \file{docs/PRIVACY.md}, published in the public repository \\
+\bottomrule
+\end{tabularx}
+\caption{Store certification risks}
+\end{table}
+
+% ===========================================================================
+\section{Errors encountered and how I resolved them}
+\label{sec:errors}
+
+\subsection{WIX7015: WiX v7 licence agreement not accepted}
+
+WiX v7 will not build until its Open Source Maintenance Fee EULA is accepted. I reproduced the
+error by building with the acceptance property cleared:
+
+\begin{lstlisting}
+PS> dotnet build installer\UnitConverter.Installer -c Release -p:AcceptEula=
+UnitConverter.Installer.wixproj : error WIX7015: You must accept the Open Source Maintenance Fee (OSMF) EULA to use WiX Toolset v7. For instructions, see https://wixtoolset.org/osmf/
+\end{lstlisting}
+
+The WiX SDK checks the \file{AcceptEula} MSBuild property on every build. I set
+\file{<AcceptEula>wix7</AcceptEula>} in the \file{.wixproj}, so builds from Visual Studio, the
+command line or a CI server all accept it the same way.
+
+\subsection{WIX1105: ICE validation could not run}
+
+The first installer build, run from a terminal without administrator rights, failed:
+
+\begin{lstlisting}
+wix.exe : error WIX1105: Validation could not run due to system policy. To eliminate this warning, run the process as admin or suppress ICE validation.
+Build FAILED.
+    0 Warning(s)
+    1 Error(s)
+\end{lstlisting}
+
+The message calls itself a warning, yet the build reported it as an error. WiX runs Windows
+Installer's Internal Consistency Evaluators (ICE) after linking, and they need administrator
+rights. The warning became an error because my shared \file{Directory.Build.props} set
+\file{TreatWarningsAsErrors=true}, and MSBuild applies that file to every project, the WiX
+project included.
+
+Switching ICE validation off would have hidden real authoring mistakes, and the next subsection
+shows it catching one. I limited \file{TreatWarningsAsErrors} to C\# projects instead, with this
+MSBuild condition:
+\begin{center}\file{'$(MSBuildProjectExtension)' == '.csproj'}\end{center}
+C\# warnings still fail the build. A WiX build without administrator rights now reports the
+warning and still produces the MSI, and a build with administrator rights runs the full ICE
+validation.
+
+\subsection{ICE69, then ICE43 and ICE57: the shortcut component}
+\label{sec:ice}
+
+The first time I built the solution with administrator rights, ICE validation ran and reported
+something the earlier builds could not see:
+
+\begin{lstlisting}
+AppComponents.wxs(36): warning WIX1076: ICE69: Mismatched component reference. Entry 'sct...' of the Shortcut table belongs to component 'StartMenuShortcut'. However, the formatted string in column 'Target' references file 'AppExe' which belongs to component 'AppExe'. Components are in the same feature.
+\end{lstlisting}
+
+My first fix was to move the shortcut into the executable's own component so the reference would
+be local. ICE validation then failed with two errors:
+
+\begin{lstlisting}
+AppComponents.wxs(8): error WIX0204: ICE43: Component AppExe has non-advertised shortcuts. It should use a registry key under HKCU as its KeyPath, not a file.
+AppComponents.wxs(8): error WIX0204: ICE57: Component 'AppExe' has both per-user and per-machine data with a per-machine KeyPath.
+\end{lstlisting}
+
+Windows Installer treats the Start-menu folder as part of the user profile, so a component that
+writes there needs a per-user (HKCU) key path. The executable's component already has the
+\file{.exe} in Program Files as its key path, so it cannot hold the shortcut. My original layout,
+a separate shortcut component with an HKCU key path, had been right. What ICE69 objected to was
+the target, \texttt{[\#AppExe]}, which refers to a file in another component.
+
+I went back to the separate component and changed the target to the equivalent folder-based path
+\file{[INSTALLFOLDER]UnitConverter.exe}, which has no cross-component file reference. The build
+then finished with no errors or warnings, and the silent install showed the shortcut working.
+
+\subsection{NETSDK1047: libraries not restored for the target runtime}
+
+The first build of the MSIX packaging project produced a package but reported errors for each
+library:
+
+\begin{lstlisting}
+error NETSDK1047: Assets file '...\src\UnitConverter.Core\obj\project.assets.json' doesn't have a target for 'net10.0/win-x64'. Ensure that restore has run and that you have included 'net10.0' in the TargetFrameworks for your project. You may also need to include 'win-x64' in your project's RuntimeIdentifiers. [...\UnitConverter.Core.csproj]
+(the same error for UnitConverter.Units, UnitConverter.Persistence and for win-arm64)
+\end{lstlisting}
+
+To make a self-contained package, the packaging project publishes the application for
+\file{win-x64} and \file{win-arm64}, and that runtime identifier is passed down to every
+referenced library. Only the application project listed those runtimes, so the libraries had
+never been restored for them. I moved \file{RuntimeIdentifiers=win-x64;win-arm64} from the
+application project into \file{Directory.Build.props}, where it applies to every C\# project, and
+a clean rebuild then finished without errors.
+
+\subsection{MSB4126: the solution had no ARM64 platform}
+
+Building the whole solution with Visual Studio's MSBuild failed after the x64 package was
+created:
+
+\begin{lstlisting}
+UnitConverter.sln.metaproj : error MSB4126: The specified solution configuration "Release|arm64" is invalid.
+\end{lstlisting}
+
+When the packaging project is built as part of a solution, it builds each architecture of the
+bundle through that solution. My solution had x64, x86 and Any CPU platforms but no ARM64. I
+added \file{Debug|ARM64} and \file{Release|ARM64}. In them the C\# projects map to Any CPU, the
+packaging project maps to ARM64, and the WiX project is left out because the MSI is x64 only.
+
+A related limit: the \file{dotnet} command cannot load \file{.wapproj} files (\emph{``The
+imported project \ldots Microsoft.DesktopBridge.props was not found''}). For that reason
+\file{build.ps1} builds each project separately and uses Visual Studio's MSBuild only for the
+Store package.
+
+\subsection{Unknown project configuration mappings in Visual Studio}
+
+The command-line builds worked, but opening the solution in Visual Studio showed a red banner:
+
+\begin{lstlisting}
+Current solution contains unknown project configuration mappings. It may cause projects to not work correctly.
+\end{lstlisting}
+
+\file{dotnet sln add} had mapped the WiX project to the solution's Any CPU configuration.
+Command-line MSBuild tolerates that. Visual Studio does not, because a WiX SDK project only
+defines the x86, x64 and ARM64 platforms, so the mapping pointed at a platform the project does
+not have.
+
+I changed \file{UnitConverter.sln} so that every solution platform maps the installer to x64,
+since the MSI is x64 only, and so that the installer is not built at all for ARM64. After that
+the banner was gone and all seven projects loaded. A full Debug|Any CPU solution build succeeded
+and put the MSI in \file{bin\x64\Debug}, the folder the walkthrough mentions.
+
+\subsection{Application blocked by Smart App Control}
+
+After a successful build, the application closed as soon as it started. The Windows event log
+showed why:
+
+\begin{lstlisting}
+Application: UnitConverter.exe
+.NET Version: 10.0.12
+Description: The process was terminated due to an unhandled exception.
+Exception Info: System.IO.FileLoadException: Could not load file or assembly
+'...\bin\Release\net10.0-windows\UnitConverter.dll'. An Application Control policy has blocked this file. (0x800711C7)
+\end{lstlisting}
+
+In the \emph{Microsoft-Windows-CodeIntegrity/Operational} log I found event 3077 (\emph{Code
+Integrity determined that a process \ldots\ attempted to load \ldots UnitConverter.dll}) followed
+by event 3118 (\emph{Smart App Control Block Details}). The registry value
+\file{HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy\VerifiedAndReputablePolicyState} was
+\file{1}, meaning Smart App Control was enforcing. It blocks any binary that is neither signed by
+a trusted certificate nor known to Microsoft's reputation service, and a DLL I had just compiled
+was neither. All tests had passed, so the code was fine.
+
+For local testing I turned Smart App Control off (\emph{Windows Security} $\rightarrow$
+\emph{App \& browser control} $\rightarrow$ \emph{Smart App Control}). The registry value then
+read \file{0} and the application started normally. For real users the answer is code signing
+with a certificate from a trusted CA, since Smart App Control ignores self-signed certificates.
+Publishing through the Microsoft Store also solves it, because Microsoft signs the MSIX package
+during certification.
+
+\subsection{Preventing a missing-runtime failure on users' PCs}
+
+The MSI installs a framework-dependent application. On a PC without the .NET 10 Desktop Runtime
+it would install without complaint and then fail to start. To catch this during installation,
+\file{Package.wxs} uses the Netfx extension's \file{DotNetCompatibilityCheck} together with a
+\file{Launch} condition. Launch conditions are evaluated by the \file{LaunchConditions} action,
+so the check has to run before it. The decompiled MSI confirms the order, and the install log
+shows the result (\file{DOTNETDESKTOP10 = 0}, compatible):
+
+\begin{lstlisting}
+<Custom Action="Wix4NetFxDotNetCompatibilityCheck_X64" Before="LaunchConditions" />
+\end{lstlisting}
+
+% ===========================================================================
+\section{Conclusion}
+
+I wrote a C\# Windows Forms application made of an executable and three class-library DLLs,
+tested its logic with 18 automated tests, and deployed it two ways. The WiX v7 MSI has a
+standard wizard, checks for the .NET runtime, adds a Start-menu shortcut and an icon in
+\emph{Installed apps}, supports upgrades, and uninstalls cleanly, which I confirmed with a
+scripted install and uninstall. The Microsoft Store package is an x64 and ARM64 MSIX bundle that
+contains every DLL and the .NET runtime, and the listing text, privacy policy and Partner Center
+steps are ready for submission.
+
+I ran into seven problems along the way. For each one I found the cause in the console output,
+the event logs or the Windows Installer validation rules, and changed the configuration that
+caused it. The final build, with full ICE validation, has no errors or warnings.
+
+\section*{References}
+\begin{itemize}
+  \item FireGiant, \emph{Using WiX}, \url{https://docs.firegiant.com/wix/using-wix/}
+  \item WiX Toolset, \emph{Open Source Maintenance Fee}, \url{https://wixtoolset.org/osmf/}
+  \item Microsoft, \emph{ICE reference (Windows Installer)},
+        \url{https://learn.microsoft.com/windows/win32/msi/ice-reference}
+  \item Microsoft, \emph{Publish your app to the Microsoft Store},
+        \url{https://learn.microsoft.com/windows/apps/publish/}
+  \item Microsoft, \emph{Package a desktop app from source code using Visual Studio},
+        \url{https://learn.microsoft.com/windows/msix/desktop/desktop-to-uwp-packaging-dot-net}
+  \item Microsoft, \emph{Publish MSI or EXE apps to the Microsoft Store},
+        \url{https://learn.microsoft.com/windows/apps/publish/publish-your-app/msi/overview}
+  \item SWE40006 unit resources, \emph{WiX walkthrough (updated 2026)}.
+\end{itemize}
+
+\end{document}

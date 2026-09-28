@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Windows Forms front end. Wires the libraries together; contains no conversion logic. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>UnitConverter</AssemblyName>
+    <RootNamespace>UnitConverter.App</RootNamespace>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <!-- Plain builds (used by the WiX MSI) are framework-dependent. The MSIX packaging project
+         builds with a RuntimeIdentifier and gets a self-contained app, because an MSIX package
+         cannot install the .NET runtime as a prerequisite. -->
+    <SelfContained Condition="'$(RuntimeIdentifier)' != ''">true</SelfContained>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UnitConverter.Core\UnitConverter.Core.csproj" />
+    <ProjectReference Include="..\UnitConverter.Units\UnitConverter.Units.csproj" />
+    <ProjectReference Include="..\UnitConverter.Persistence\UnitConverter.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

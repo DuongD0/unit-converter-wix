@@ -1,0 +1,30 @@
+# Build output
+bin/
+obj/
+*.msi
+*.wixpdb
+*.msix
+*.msixbundle
+*.msixupload
+AppPackages/
+BundleArtifacts/
+*.assets.cache
+
+# IDE
+.vs/
+*.user
+
+# LaTeX build output
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.toc
+*.synctex.gz
+
+# Unit course material (not ours to publish)
+WiX walkthrough*.pdf
+
+# Compiled report (submitted separately through Canvas)
+report/main.pdf

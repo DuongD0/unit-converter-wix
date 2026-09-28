@@ -1,0 +1,37 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:netfx="http://wixtoolset.org/schemas/v4/wxs/netfx">
+
+  <!-- UpgradeCode must never change: it is how Windows recognises later versions of this product. -->
+  <Package Name="Unit Converter"
+           Manufacturer="SWE40006 Student"
+           Version="$(var.ProductVersion)"
+           UpgradeCode="6f1c9c52-3e8b-4b7a-9a4d-2c51e7a0b3d1">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- The app is framework-dependent, so block installation if the .NET 10 Desktop Runtime is missing. -->
+    <netfx:DotNetCompatibilityCheck Property="DOTNETDESKTOP10"
+                                    RuntimeType="desktop"
+                                    Platform="x64"
+                                    Version="10.0.0"
+                                    RollForward="latestMajor" />
+    <Launch Condition="Installed OR DOTNETDESKTOP10 = &quot;0&quot;"
+            Message="[ProductName] requires the .NET 10 Desktop Runtime (x64). Download it from https://dotnet.microsoft.com/download/dotnet/10.0 and run this installer again." />
+
+    <!-- Icon shown in Settings > Apps > Installed apps. -->
+    <Icon Id="AppIcon" SourceFile="..\..\src\UnitConverter.App\app.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+
+    <Feature Id="Main" Title="Unit Converter" Level="1">
+      <ComponentGroupRef Id="ApplicationComponents" />
+      <ComponentGroupRef Id="LibraryComponents" />
+      <ComponentRef Id="StartMenuShortcut" />
+    </Feature>
+
+    <!-- Standard wizard with a licence page and a choice of install folder. -->
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+  </Package>
+</Wix>
