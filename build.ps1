@@ -34,6 +34,13 @@ if ($Store) {
     $msbuild = & $vswhere -latest -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
     if (-not $msbuild) { throw 'Visual Studio MSBuild not found; it is required to build the MSIX package.' }
 
+    # Incremental builds reuse a cached AppxManifest.xml, so manifest edits (e.g. the Store identity)
+    # would silently not reach the package. Always package from a clean state.
+    $pkgDir = 'packaging\UnitConverter.Package'
+    'bin', 'obj', 'AppPackages', 'BundleArtifacts' | ForEach-Object {
+        Remove-Item (Join-Path $pkgDir $_) -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
     Invoke-Step 'Build Microsoft Store package' {
         & $msbuild packaging\UnitConverter.Package\UnitConverter.Package.wapproj `
             /restore /p:Configuration=$Configuration /p:Platform=x64 /v:minimal /nologo
